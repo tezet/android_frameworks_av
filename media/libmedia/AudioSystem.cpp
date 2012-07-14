@@ -788,14 +788,14 @@ extern "C" status_t _ZN7android11AudioSystem24setDeviceConnectionStateENS0_13aud
 
 extern "C" audio_io_handle_t _ZN7android11AudioSystem9getOutputENS0_11stream_typeEjjjNS0_12output_flagsE(audio_stream_type_t stream,
                                     uint32_t samplingRate,
-                                    uint32_t format,
+                                    audio_format_t format,
                                     uint32_t channels,
-                                    audio_policy_output_flags_t flags) 
+                                    audio_output_flags_t flags) 
 {
    return AudioSystem::getOutput(stream,samplingRate,format,channels>>2,flags);
 }
 
-extern "C" bool _ZN7android11AudioSystem11isLinearPCMEj(uint32_t format)
+extern "C" bool _ZN7android11AudioSystem11isLinearPCMEj(audio_format_t format)
 {
     return audio_is_linear_pcm(format);
 }
