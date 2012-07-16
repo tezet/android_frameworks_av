@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+/*--------------------------------------------------------------------------
+Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+--------------------------------------------------------------------------*/
+
 //#define LOG_NDEBUG 0
 #define LOG_TAG "OMXCodec"
 #include <utils/Log.h>
@@ -43,6 +47,12 @@
 #include <OMX_Component.h>
 
 #include "include/avc_utils.h"
+
+#ifdef QCOM_HARDWARE
+#include <gralloc_priv.h>
+
+static const int OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka = 0x7FA30C03;
+#endif
 
 namespace android {
 
@@ -192,6 +202,7 @@ void OMXCodec::findMatchingCodecs(
 
     const MediaCodecList *list = MediaCodecList::getInstance();
     if (list == NULL) {
+        ALOGE("mediacodec list instance returned NULL");
         return;
     }
 
@@ -249,6 +260,10 @@ uint32_t OMXCodec::getComponentQuirks(
     if (list->codecHasQuirk(
                 index, "output-buffers-are-unreadable")) {
         quirks |= kOutputBuffersAreUnreadable;
+    }
+    if (list->codecHasQuirk(
+                index, "requies-loaded-to-idle-after-allocation")) {
+      quirks |= kRequiresLoadedToIdleAfterAllocation;
     }
 
     return quirks;
@@ -370,6 +385,8 @@ sp<MediaSource> OMXCodec::Create(
             }
 
             ALOGV("Failed to configure codec '%s'", componentName);
+        } else {
+            ALOGE("failed to allocate node %s", componentName);
         }
     }
 
@@ -818,8 +835,10 @@ void OMXCodec::setVideoInputFormat(
             mNode, OMX_IndexParamPortDefinition, &def, sizeof(def));
     CHECK_EQ(err, (status_t)OK);
 
-    def.nBufferSize = getFrameSize(colorFormat,
-            stride > 0? stride: -stride, sliceHeight);
+    if (strncmp(mComponentName, "OMX.qcom", 8)) {
+        def.nBufferSize = getFrameSize(colorFormat,
+                  stride > 0? stride: -stride, sliceHeight);
+    }
 
     CHECK_EQ((int)def.eDomain, (int)OMX_PortDomainVideo);
 
@@ -1214,7 +1233,11 @@ status_t OMXCodec::setVideoOutputFormat(
                || format.eColorFormat == OMX_COLOR_FormatYUV420SemiPlanar
                || format.eColorFormat == OMX_COLOR_FormatCbYCrY
                || format.eColorFormat == OMX_TI_COLOR_FormatYUV420PackedSemiPlanar
-               || format.eColorFormat == OMX_QCOM_COLOR_FormatYVU420SemiPlanar);
+               || format.eColorFormat == OMX_QCOM_COLOR_FormatYVU420SemiPlanar
+#ifdef QCOM_HARDWARE
+               || format.eColorFormat == OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka
+#endif
+               );
 
         err = mOMX->setParameter(
                 mNode, OMX_IndexParamVideoPortFormat,
@@ -1682,11 +1705,27 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
         return err;
     }
 
+    ALOGV("set_buffers_geometry w %lu, h %lu format %d",
+            def.format.video.nFrameWidth,
+            def.format.video.nFrameHeight,
+            def.format.video.eColorFormat);
+
+#ifdef QCOM_ICS_COMPAT
+    int format = (def.format.video.eColorFormat ==
+                  OMX_QCOM_COLOR_FormatYUV420PackedSemiPlanar64x32Tile2m8ka)?
+                 HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED : def.format.video.eColorFormat;
+#endif
+
     err = native_window_set_buffers_geometry(
             mNativeWindow.get(),
             def.format.video.nFrameWidth,
             def.format.video.nFrameHeight,
-            def.format.video.eColorFormat);
+#ifdef QCOM_ICS_COMPAT
+            format
+#else
+            def.format.video.eColorFormat
+#endif
+          );
 
     if (err != 0) {
         ALOGE("native_window_set_buffers_geometry failed: %s (%d)",
@@ -2883,6 +2922,10 @@ void OMXCodec::drainInputBuffers() {
 
             if (info->mStatus != OWNED_BY_US) {
                 continue;
+            }
+
+            if (mIsEncoder && mIsVideo && (i == 4)) { //BIG TBD - move this to component
+                break;
             }
 
             if (!drainInputBuffer(info)) {
