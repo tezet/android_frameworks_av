@@ -100,7 +100,7 @@ AudioRecord::AudioRecord(
     mStatus = set(inputSource, sampleRate, format, channelMask,
             frameCount, flags, cbf, user, notificationFrames, sessionId);
 }
-/*
+
 #ifdef USE_KINETO_COMPATIBILITY
 // Really dirty hack to give a Froyo-compatible constructor
 extern "C" AudioRecord *_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_ii(
@@ -131,7 +131,7 @@ extern "C" AudioRecord *_ZN7android11AudioRecordC1EijijijPFviPvS1_ES1_i(
         inputSource, sampleRate, format, channels,
         frameCount, flags, cbf, user, notificationFrames, 0);
 }
-#endif */
+#endif
 
 AudioRecord::~AudioRecord()
 {
