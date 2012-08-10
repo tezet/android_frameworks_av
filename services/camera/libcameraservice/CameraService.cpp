@@ -580,7 +580,6 @@ status_t CameraService::Client::setPreviewWindow(const sp<IBinder>& binder,
 #ifdef QCOM_HARDWARE
     } else {
         result = mHardware->setPreviewWindow(window);
-    }
 #endif
     }
 
@@ -971,7 +970,6 @@ status_t CameraService::Client::sendCommand(int32_t cmd, int32_t arg1, int32_t a
     } else if (cmd ==   CAMERA_CMD_STOP_FACE_DETECTION) {
       mFaceDetection = false;
       disableMsgType(CAMERA_MSG_PREVIEW_METADATA);
-    }
 #endif
     }
 
