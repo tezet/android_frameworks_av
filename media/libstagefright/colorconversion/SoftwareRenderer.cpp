@@ -26,6 +26,8 @@
 #include <ui/GraphicBufferMapper.h>
 #include <gui/ISurfaceTexture.h>
 
+#undef OMAP_COMPAT
+
 namespace android {
 
 static int ALIGN(int x, int y) {
