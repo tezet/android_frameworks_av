@@ -108,6 +108,8 @@ AudioSource::AudioSource(
                     audio_channel_in_mask_from_count(channelCount),
 #ifdef QCOM_HARDWARE
                     4 * mMaxBufferSize / sizeof(int16_t), /* Enable ping-pong buffers */
+#elif OMAP_COMPAT
+                    4 * kMaxBufferSize / sizeof(int16_t), /* Enable ping-pong buffers */
 #else
                     bufCount * frameCount,
 #endif
