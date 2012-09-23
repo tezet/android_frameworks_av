@@ -452,7 +452,6 @@ sp<MediaSource> OMXCodec::Create(
         }
 #endif
 
-
         if (!createEncoder
                 && (quirks & kOutputBuffersAreUnreadable)
                 && (flags & kClientNeedsFramebuffer)) {
@@ -712,6 +711,21 @@ status_t OMXCodec::configureCodec(const sp<MetaData> &meta) {
     if (mIsEncoder) {
         CHECK(meta->findInt32(kKeyBitRate, &bitRate));
     }
+
+    // required to prefer the 720P encoder on Defy red lens, and Defy+
+    #define MAX_ENCODER_RESOLUTION 848*480
+    if (!strcmp(mComponentName, "OMX.TI.Video.encoder")) {
+        int32_t width, height;
+        bool success = meta->findInt32(kKeyWidth, &width);
+        success = success && meta->findInt32(kKeyHeight, &height);
+        CHECK(success);
+        if (width*height > MAX_ENCODER_RESOLUTION) {
+            ALOGE("Format exceed the encoder's capabilities. %d", width*height);
+            // require OMX.TI.720P.Encoder
+            return ERROR_UNSUPPORTED;
+        }
+   }
+
     if (!strcasecmp(MEDIA_MIMETYPE_AUDIO_AMR_NB, mMIME)) {
         setAMRFormat(false /* isWAMR */, bitRate);
     } else if (!strcasecmp(MEDIA_MIMETYPE_AUDIO_AMR_WB, mMIME)) {
@@ -986,7 +1000,8 @@ status_t OMXCodec::setVideoPortFormatType(
              index, format.eCompressionFormat, format.eColorFormat);
 #endif
 
-        if (!strcmp("OMX.TI.Video.encoder", mComponentName)) {
+        if (!strcmp("OMX.TI.Video.encoder", mComponentName) ||
+            !strcmp("OMX.TI.720P.Encoder", mComponentName)) {
             if (portIndex == kPortIndexInput
                     && colorFormat == format.eColorFormat) {
                 // eCompressionFormat does not seem right.
@@ -3984,6 +3999,7 @@ void OMXCodec::fillOutputBuffer(BufferInfo *info) {
 
 bool OMXCodec::drainInputBuffer(IOMX::buffer_id buffer) {
     Vector<BufferInfo> *buffers = &mPortBuffers[kPortIndexInput];
+
     for (size_t i = 0; i < buffers->size(); ++i) {
         if ((*buffers)[i].mBuffer == buffer) {
             return drainInputBuffer(&buffers->editItemAt(i));
