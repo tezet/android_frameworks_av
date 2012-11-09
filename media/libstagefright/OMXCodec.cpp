@@ -293,6 +293,10 @@ uint32_t OMXCodec::getComponentQuirks(
       quirks |= kNeedsFlushBeforeDisable;
     }
     if (list->codecHasQuirk(
+                index, "defers-output-buffer-allocation")) {
+        quirks |= kDefersOutputBufferAllocation;
+    }
+    if (list->codecHasQuirk(
                 index, "decoder-lies-about-nubmer-of-channels")) {
       quirks |= kDecoderLiesAboutNumberOfChannels;
     }
