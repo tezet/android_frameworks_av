@@ -73,12 +73,12 @@ SoftwareRenderer::SoftwareRenderer(
 
     switch (mColorFormat) {
         case OMX_COLOR_FormatYUV420Planar:
-#ifdef OMAP_COMPAT
+//#ifdef OMAP_COMPAT
         /* OMX.TI.VideoDecoder decoding to OMX_COLOR_FormatYUV420Planar
            is buggy (causing occasional DSP bridge resets), so we have
            to use OMX_COLOR_FormatCbYCrY, which is reliable */
         case OMX_COLOR_FormatCbYCrY:
-#endif
+//#endif
         case OMX_TI_COLOR_FormatYUV420PackedSemiPlanar:
         {
             if (!runningInEmulator()) {
@@ -227,7 +227,7 @@ void SoftwareRenderer::render(
             dst_u += dst_c_stride;
             dst_v += dst_c_stride;
         }
-#ifdef OMAP_COMPAT
+//#ifdef OMAP_COMPAT
     } else if (mColorFormat == OMX_COLOR_FormatCbYCrY) {
         const uint8_t *src = (const uint8_t *)data;
 
@@ -272,7 +272,7 @@ void SoftwareRenderer::render(
             dst_v += pb_c_size_tmp;
             dst_u += pb_c_size_tmp;
         }
-#endif
+//#endif
     } else {
         CHECK_EQ(mColorFormat, OMX_TI_COLOR_FormatYUV420PackedSemiPlanar);
 
